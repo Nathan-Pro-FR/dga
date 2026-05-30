@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projet : Discord_Github_Action</title>
+    <style>
+        :root {
+            --bg-color: #1e1e1e;
+            --sidebar-bg: #252526;
+            --text-color: #cccccc;
+            --text-selected: #ffffff;
+            --hover-bg: #2a2d2e;
+            --selected-bg: #37373d;
+            --accent-color: #007acc;
+            --code-bg: #1e1e1e;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Sidebar - Arborescence */
+        .sidebar {
+            width: 320px;
+            background-color: var(--sidebar-bg);
+            border-right: 1px solid #3c3c3c;
+            display: flex;
+            flex-direction: column;
+            user-select: none;
+        }
+
+        .sidebar-header {
+            padding: 12px 15px;
+            font-weight: bold;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 1px solid #3c3c3c;
+            color: #858585;
+        }
+
+        .tree {
+            padding: 10px;
+            overflow-y: auto;
+            flex-grow: 1;
+        }
+
+        .tree-item {
+            cursor: pointer;
+            padding: 6px 8px;
+            display: flex;
+            align-items: center;
+            border-radius: 3px;
+            font-size: 14px;
+            margin-bottom: 2px;
+        }
+
+        .tree-item:hover {
+            background-color: var(--hover-bg);
+        }
+
+        .tree-item.active {
+            background-color: var(--selected-bg);
+            color: var(--text-selected);
+        }
+
+        .folder {
+            font-weight: 600;
+            color: #dcdcaa;
+        }
+
+        .folder::before {
+            content: "➔ ";
+            display: inline-block;
+            transition: transform 0.2s;
+            margin-right: 6px;
+            font-size: 10px;
+            color: #858585;
+        }
+
+        .folder.open::before {
+            transform: rotate(90deg);
+        }
+
+        .file {
+            margin-left: 18px;
+            color: #cccccc;
+        }
+
+        .file::before {
+            content: "📄 ";
+            margin-right: 6px;
+            font-size: 12px;
+        }
+
+        .nested {
+            display: none;
+            padding-left: 15px;
+            border-left: 1px solid #3c3c3c;
+            margin-left: 7px;
+        }
+
+        .nested.show {
+            display: block;
+        }
+
+        /* Zone de code */
+        .main-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--bg-color);
+        }
+
+        .editor-header {
+            background-color: var(--sidebar-bg);
+            padding: 12px 20px;
+            font-size: 14px;
+            border-bottom: 1px solid #3c3c3c;
+            min-height: 20px;
+            color: var(--text-selected);
+            font-family: monospace;
+        }
+
+        .code-container {
+            padding: 20px;
+            overflow: auto;
+            flex-grow: 1;
+            margin: 0;
+            background-color: var(--code-bg);
+        }
+
+        pre {
+            margin: 0;
+            font-family: 'Consolas', 'Courier New', Courier, monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #d4d4d4;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="sidebar-header">Discord_Github_Action</div>
+        <div class="tree">
+            
+            <div class="tree-item folder" onclick="toggleFolder(this)">.github</div>
+            <div class="nested">
+                <div class="tree-item folder" onclick="toggleFolder(this)">workflows</div>
+                <div class="nested">
+                    <div class="tree-item file" onclick="showCode('sync_discord', this)">sync_discord.yml</div>
+                </div>
+                <div class="tree-item file" onclick="showCode('dependabot', this)">dependabot.yml</div>
+            </div>
+
+            <div class="tree-item folder" onclick="toggleFolder(this)">css</div>
+            <div class="nested">
+                <div class="tree-item file" onclick="showCode('style', this)">style.css</div>
+            </div>
+
+            <div class="tree-item file" onclick="showCode('readme_fr', this)">README.fr.md</div>
+            <div class="tree-item file" onclick="showCode('readme', this)">README.md</div>
+            <div class="tree-item file" onclick="showCode('security', this)">SECURITY.md</div>
+            <div class="tree-item file" onclick="showCode('donnees', this)">donnees.json</div>
+            <div class="tree-item file" onclick="showCode('index', this)">index.html</div>
+            <div class="tree-item file" onclick="showCode('package', this)">package.json</div>
+            <div class="tree-item file" onclick="showCode('recupere_medias', this)">recupere_medias.js</div>
+            <div class="tree-item file" onclick="showCode('script', this)">script.js</div>
+
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="editor-header" id="file-name">Sélectionnez un fichier dans l'arborescence</div>
+        <pre class="code-container"><code id="code-block">// Le contenu de votre fichier s'affichera ici...</code></pre>
+    </div>
+
+    <script>
+        // Gestion de l'ouverture/fermeture des dossiers
+        function toggleFolder(element) {
+            element.classList.toggle('open');
+            const nextElement = element.nextElementSibling;
+            if (nextElement && nextElement.classList.contains('nested')) {
+                nextElement.classList.toggle('show');
+            }
+        }
+
+        // Récupération automatique du contenu de tes .txt sur GitHub Pages
+        async function showCode(fileName, element) {
+            document.querySelectorAll('.file').forEach(item => item.classList.remove('active'));
+            element.classList.add('active');
+
+            document.getElementById('file-name').innerText = element.innerText;
+            const codeBlock = document.getElementById('code-block');
+            codeBlock.textContent = "Chargement...";
+
+            try {
+                // Va chercher le fichier directement sur ton hébergement GitHub Pages
+                const response = await fetch(`snippets/${fileName}.txt`);
+                if (!response.ok) throw new Error();
+                
+                const textContent = await response.text();
+                codeBlock.textContent = textContent;
+            } catch (error) {
+                codeBlock.textContent = `// Erreur : Impossible de charger le fichier "snippets/${fileName}.txt". Vérifie qu'il est bien push sur GitHub.`;
+            }
+        }
+    </script>
+</body>
+</html>
